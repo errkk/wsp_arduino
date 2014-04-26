@@ -13,14 +13,15 @@ OneWire oneWire(ONE_WIRE_BUS);
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 
-DeviceAddress insideThermometer = { 
+DeviceAddress intoPoolThermometer = { 
     0x28, 0x88, 0xAF, 0xBD, 0x04, 0x00, 0x00, 0x9B };
-DeviceAddress outsideThermometer  = { 
+DeviceAddress fromPanelThermometer  = { 
     0x28, 0x07, 0xB4, 0xBD, 0x04, 0x00, 0x00, 0x59 };
 
 // Networking setup
 byte mac[] = { 
     0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+    
 // Device IP
 IPAddress ip(192, 168, 1, 88);
 
@@ -33,17 +34,26 @@ EthernetClient client;
 char server[] = "stage.wsp.web3.errkk.co";
 //IPAddress server(192, 168, 1, 69);
 int serverPort = 80;
+//int serverPort = 8080;
 
 unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                 // state of the connection last time through the main loop
-const unsigned long postingInterval = 10*1000;  // delay between updates, in milliseconds
+const unsigned long postingInterval = 2*60*1000;  // delay between updates, in milliseconds
 
 // Temporary buffer for converting floats
 char t1s[10];
 char t2s[10];
 
+// Pump represented by LED
+int ledPin = 13;
+
+// Pump State
+int pumpState = 0;
+
 void setup(void)
 {
+    pinMode(ledPin, OUTPUT);
+
     // start serial port
     Serial.begin(9600);
 
@@ -62,15 +72,15 @@ void setup(void)
     else Serial.println("OFF");
 
     // set the resolution to 9 bit
-    sensors.setResolution(insideThermometer, TEMPERATURE_PRECISION);
-    sensors.setResolution(outsideThermometer, TEMPERATURE_PRECISION);
+    sensors.setResolution(intoPoolThermometer, TEMPERATURE_PRECISION);
+    sensors.setResolution(fromPanelThermometer, TEMPERATURE_PRECISION);
 
     Serial.print("Device 0 Resolution: ");
-    Serial.print(sensors.getResolution(insideThermometer), DEC); 
+    Serial.print(sensors.getResolution(intoPoolThermometer), DEC); 
     Serial.println();
 
     Serial.print("Device 1 Resolution: ");
-    Serial.print(sensors.getResolution(outsideThermometer), DEC); 
+    Serial.print(sensors.getResolution(fromPanelThermometer), DEC); 
     Serial.println();
 
     // Time for ethernet module to boot
@@ -106,7 +116,7 @@ void loop(void)
         Serial.println("disconnecting.");
         client.stop();
     }
-    
+
 
 
     // if you're not connected, and ten seconds have passed since
@@ -122,39 +132,51 @@ void loop(void)
     lastConnected = client.connected();    
 }
 
+void checkDifference(float &t1, float &t2) {
+    if(t2 - t1 > 2.0){
+        digitalWrite(ledPin, HIGH);
+        pumpState = 1;
+        Serial.println("Pump On");
+    }
+    else {
+        digitalWrite(ledPin, LOW);
+        pumpState = 0;        
+        Serial.println("Pump Off");        
+    }
+}
+
 
 // this method makes a HTTP connection to the server:
 void httpRequest() {
     // call sensors.requestTemperatures() to issue a global temperature 
     // request to all devices on the bus
     sensors.requestTemperatures();
-    
-    float t1 = sensors.getTempC(insideThermometer);
-    float t2 = sensors.getTempC(outsideThermometer);
+
+    float t1 = sensors.getTempC(intoPoolThermometer);
+    float t2 = sensors.getTempC(fromPanelThermometer);
+
+    // Decide whether to run the pump
+    checkDifference(t1, t2);
 
     // Convert the floats to strings using the char buffers t1s and t2s
     dtostrf(t1, 6, 2, t1s);
     dtostrf(t2, 6, 2, t2s);
-    
-    Serial.println("Floats:");    
+
+    Serial.println("Temps:");    
     Serial.print(t1);
     Serial.print(" -- ");
     Serial.print(t2);    
     Serial.println();    
 
-
-    Serial.println("Strings:");    
-    Serial.print(t1s);
-    Serial.print(" -- ");
-    Serial.print(t2s);    
-    Serial.println();    
-    
     String PostData="t1=";
     PostData=String(PostData + t1s);
-    
+
     PostData=PostData+"&t2=";
     PostData=String(PostData + t2s);
     
+    PostData=PostData+"&pump=";
+    PostData=String(PostData + pumpState);
+
     Serial.println(PostData);
 
 
@@ -184,6 +206,7 @@ void httpRequest() {
         client.stop();
     }
 }
+
 
 
 
