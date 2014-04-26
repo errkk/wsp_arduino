@@ -5,7 +5,7 @@
 
 // Data wire is plugged into port 2 on the Arduino
 #define ONE_WIRE_BUS 2
-#define TEMPERATURE_PRECISION 9
+#define TEMPERATURE_PRECISION 11
 
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
@@ -30,13 +30,17 @@ IPAddress myDns(192, 168, 1, 254);
 // initialize the library instance:
 EthernetClient client;
 
-//char server[] = "192.168.1.69";
-IPAddress server(192, 168, 1, 69);
-int serverPort = 8080;
+char server[] = "stage.wsp.web3.errkk.co";
+//IPAddress server(192, 168, 1, 69);
+int serverPort = 80;
 
 unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                 // state of the connection last time through the main loop
 const unsigned long postingInterval = 10*1000;  // delay between updates, in milliseconds
+
+// Temporary buffer for converting floats
+char t1s[10];
+char t2s[10];
 
 void setup(void)
 {
@@ -83,15 +87,6 @@ void setup(void)
     Serial.println(Ethernet.localIP());
 }
 
-// function to print the temperature for a device
-void printTemperature(DeviceAddress deviceAddress)
-{
-    float tempC = sensors.getTempC(deviceAddress);
-    Serial.print("Temp C: ");
-    Serial.println(tempC);
-}
-
-
 void loop(void)
 { 
 
@@ -111,16 +106,13 @@ void loop(void)
         Serial.println("disconnecting.");
         client.stop();
     }
+    
+
 
     // if you're not connected, and ten seconds have passed since
     // your last connection, then connect again and send data:
 
     if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
-        // call sensors.requestTemperatures() to issue a global temperature 
-        // request to all devices on the bus
-        Serial.print("Requesting temperatures...");
-        sensors.requestTemperatures();
-        Serial.println("DONE");
 
         httpRequest();
     }
@@ -133,13 +125,29 @@ void loop(void)
 
 // this method makes a HTTP connection to the server:
 void httpRequest() {
+    // call sensors.requestTemperatures() to issue a global temperature 
+    // request to all devices on the bus
+    sensors.requestTemperatures();
+    
     float t1 = sensors.getTempC(insideThermometer);
     float t2 = sensors.getTempC(outsideThermometer);
-    char buffer[5];
-    String t1s = dtostrf(t1, 1, 4, buffer);
-    String t2s = dtostrf(t2, 1, 4, buffer);
-    Serial.println(t1s);
-    Serial.println(t2s);    
+
+    // Convert the floats to strings using the char buffers t1s and t2s
+    dtostrf(t1, 6, 2, t1s);
+    dtostrf(t2, 6, 2, t2s);
+    
+    Serial.println("Floats:");    
+    Serial.print(t1);
+    Serial.print(" -- ");
+    Serial.print(t2);    
+    Serial.println();    
+
+
+    Serial.println("Strings:");    
+    Serial.print(t1s);
+    Serial.print(" -- ");
+    Serial.print(t2s);    
+    Serial.println();    
     
     String PostData="t1=";
     PostData=String(PostData + t1s);
@@ -155,7 +163,7 @@ void httpRequest() {
         Serial.println("Connecting...");
         // send the HTTP PUT request:
         client.println("POST /panel/input/arduino/ HTTP/1.1");
-        client.println("Host: localhost");
+        client.println("Host: stage.wsp.web3.errkk.co");
         client.println("User-Agent: arduino-ethernet");
         client.println("Connection: close");
 
