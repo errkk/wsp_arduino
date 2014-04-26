@@ -38,7 +38,7 @@ int serverPort = 80;
 
 unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                 // state of the connection last time through the main loop
-const unsigned long postingInterval = 2*60*1000;  // delay between updates, in milliseconds
+const unsigned long postingInterval = 30*1000;  // delay between updates, in milliseconds
 
 // Temporary buffer for converting floats
 char t1s[10];
@@ -74,14 +74,6 @@ void setup(void)
     // set the resolution to 9 bit
     sensors.setResolution(intoPoolThermometer, TEMPERATURE_PRECISION);
     sensors.setResolution(fromPanelThermometer, TEMPERATURE_PRECISION);
-
-    Serial.print("Device 0 Resolution: ");
-    Serial.print(sensors.getResolution(intoPoolThermometer), DEC); 
-    Serial.println();
-
-    Serial.print("Device 1 Resolution: ");
-    Serial.print(sensors.getResolution(fromPanelThermometer), DEC); 
-    Serial.println();
 
     // Time for ethernet module to boot
     delay(1000);
