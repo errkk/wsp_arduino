@@ -21,7 +21,7 @@ DeviceAddress fromPanelThermometer  = {
 // Networking setup
 byte mac[] = { 
     0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
-    
+
 // Device IP
 IPAddress ip(192, 168, 1, 88);
 
@@ -31,10 +31,8 @@ IPAddress myDns(192, 168, 1, 254);
 // initialize the library instance:
 EthernetClient client;
 
-char server[] = "stage.wsp.web3.errkk.co";
-//IPAddress server(192, 168, 1, 69);
+char server[] = "data.sparkfun.com";
 int serverPort = 80;
-//int serverPort = 8080;
 
 unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
 boolean lastConnected = false;                 // state of the connection last time through the main loop
@@ -44,11 +42,7 @@ const unsigned long postingInterval = 30*1000;  // delay between updates, in mil
 char t1s[10];
 char t2s[10];
 
-// Pump represented by LED
 int ledPin = 13;
-
-// Pump State
-int pumpState = 0;
 
 void setup(void)
 {
@@ -91,8 +85,6 @@ void setup(void)
 
 void loop(void)
 { 
-
-
     // if there's incoming data from the net connection.
     // send it out the serial port.  This is for debugging
     // purposes only:
@@ -109,34 +101,16 @@ void loop(void)
         client.stop();
     }
 
-
-
     // if you're not connected, and ten seconds have passed since
     // your last connection, then connect again and send data:
-
     if(!client.connected() && (millis() - lastConnectionTime > postingInterval)) {
-
         httpRequest();
     }
 
     // store the state of the connection for next time through
     // the loop:
-    lastConnected = client.connected();    
+    lastConnected = client.connected();
 }
-
-void checkDifference(float &t1, float &t2) {
-    if(t2 - t1 > 2.0){
-        digitalWrite(ledPin, HIGH);
-        pumpState = 1;
-        Serial.println("Pump On");
-    }
-    else {
-        digitalWrite(ledPin, LOW);
-        pumpState = 0;        
-        Serial.println("Pump Off");        
-    }
-}
-
 
 // this method makes a HTTP connection to the server:
 void httpRequest() {
@@ -147,41 +121,35 @@ void httpRequest() {
     float t1 = sensors.getTempC(intoPoolThermometer);
     float t2 = sensors.getTempC(fromPanelThermometer);
 
-    // Decide whether to run the pump
-    checkDifference(t1, t2);
-
     // Convert the floats to strings using the char buffers t1s and t2s
     dtostrf(t1, 6, 2, t1s);
     dtostrf(t2, 6, 2, t2s);
 
-    Serial.println("Temps:");    
+    Serial.println("Temps:");
     Serial.print(t1);
     Serial.print(" -- ");
-    Serial.print(t2);    
-    Serial.println();    
+    Serial.print(t2);
+    Serial.println();
 
-    String PostData="t1=";
+    String PostData="temp1=";
     PostData=String(PostData + t1s);
 
-    PostData=PostData+"&t2=";
+    PostData=PostData+"&temp2=";
     PostData=String(PostData + t2s);
-    
-    PostData=PostData+"&pump=";
-    PostData=String(PostData + pumpState);
 
     Serial.println(PostData);
-
 
     // if there's a successful connection:
     if (client.connect(server, serverPort)) {
         Serial.println("Connecting...");
-        // send the HTTP PUT request:
-        client.println("POST /panel/input/arduino/ HTTP/1.1");
-        client.println("Host: stage.wsp.web3.errkk.co");
+        // send the HTTP POST request:
+        client.println("POST /input/EJj5MwJoYlC5w53wYnMO HTTP/1.1");
+        client.println("Host: data.sparkfun.com");
         client.println("User-Agent: arduino-ethernet");
+        client.println("Phant-Private-Key: dqpe5ZqwoBTyvyZvVb4X");
         client.println("Connection: close");
 
-        client.println("Content-Type: application/x-www-form-urlencoded; charset=UTF-8");        
+        client.println("Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
         client.print("Content-Length: ");
         client.println(PostData.length());
         client.println();
@@ -198,8 +166,3 @@ void httpRequest() {
         client.stop();
     }
 }
-
-
-
-
-
