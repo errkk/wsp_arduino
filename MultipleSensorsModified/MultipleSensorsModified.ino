@@ -23,7 +23,7 @@ byte mac[] = {
     0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
 
 // Device IP
-IPAddress ip(192, 168, 1, 88);
+IPAddress ip(10, 193, 15, 32);
 
 // Local DNS
 IPAddress myDns(192, 168, 1, 254);
