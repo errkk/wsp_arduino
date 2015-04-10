@@ -25,7 +25,7 @@ DeviceAddress address = {
 
 // Networking setup
 byte mac[] = { 
-    0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xED};
+    0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0xEE};
 
 // Device IP
 IPAddress ip(10, 193, 15, 32);
@@ -36,7 +36,7 @@ IPAddress myDns(192, 168, 1, 254);
 // initialize the library instance:
 EthernetClient client;
 
-char server[] = "data.sparkfun.com";
+char server[] = "poketemp.herokuapp.com";
 int serverPort = 80;
 
 unsigned long lastConnectionTime = 0;          // last time you connected to the server, in milliseconds
@@ -131,19 +131,18 @@ void httpRequest() {
     Serial.print(t1);
     Serial.println();
 
-    String PostData="temp1=";
+    String PostData="value=";
     PostData=String(PostData + t1s);
-    PostData=String("&id=" + ID);
+    PostData=String(PostData + "&source=" + ID);
     Serial.println(PostData);
 
     // if there's a successful connection:
     if (client.connect(server, serverPort)) {
         Serial.println("Connecting...");
         // send the HTTP POST request:
-        client.println("POST /input/EJj5MwJoYlC5w53wYnMO HTTP/1.1");
-        client.println("Host: data.sparkfun.com");
+        client.println("POST /track/ HTTP/1.1");
+        client.println("Host: poketemp.herokuapp.com");
         client.println("User-Agent: arduino-ethernet");
-        client.println("Phant-Private-Key: dqpe5ZqwoBTyvyZvVb4X");
         client.println("Connection: close");
 
         client.println("Content-Type: application/x-www-form-urlencoded; charset=UTF-8");
