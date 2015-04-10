@@ -7,16 +7,21 @@
 #define ONE_WIRE_BUS 2
 #define TEMPERATURE_PRECISION 11
 
+#define ID 'J'
+
 // Setup a oneWire instance to communicate with any OneWire devices (not just Maxim/Dallas temperature ICs)
 OneWire oneWire(ONE_WIRE_BUS);
 
 // Pass our oneWire reference to Dallas Temperature. 
 DallasTemperature sensors(&oneWire);
 
-DeviceAddress intoPoolThermometer = { 
-    0x28, 0x88, 0xAF, 0xBD, 0x04, 0x00, 0x00, 0x9B };
-DeviceAddress fromPanelThermometer  = { 
-    0x28, 0x07, 0xB4, 0xBD, 0x04, 0x00, 0x00, 0x59 };
+// James
+DeviceAddress address = { 
+    0x28, 0xFF, 0x84, 0x29, 0x63, 0x14, 0x02, 0x55 };
+
+// Eric
+//DeviceAddress address = {     
+//    0x28, 0x88, 0xAF, 0xBD, 0x04, 0x00, 0x00, 0x9B };
 
 // Networking setup
 byte mac[] = { 
@@ -40,7 +45,7 @@ const unsigned long postingInterval = 30*1000;  // delay between updates, in mil
 
 // Temporary buffer for converting floats
 char t1s[10];
-char t2s[10];
+
 
 int ledPin = 13;
 
@@ -66,8 +71,7 @@ void setup(void)
     else Serial.println("OFF");
 
     // set the resolution to 9 bit
-    sensors.setResolution(intoPoolThermometer, TEMPERATURE_PRECISION);
-    sensors.setResolution(fromPanelThermometer, TEMPERATURE_PRECISION);
+    sensors.setResolution(address, TEMPERATURE_PRECISION);
 
     // Time for ethernet module to boot
     delay(1000);
@@ -118,25 +122,18 @@ void httpRequest() {
     // request to all devices on the bus
     sensors.requestTemperatures();
 
-    float t1 = sensors.getTempC(intoPoolThermometer);
-    float t2 = sensors.getTempC(fromPanelThermometer);
+    float t1 = sensors.getTempC(address);
 
     // Convert the floats to strings using the char buffers t1s and t2s
     dtostrf(t1, 6, 2, t1s);
-    dtostrf(t2, 6, 2, t2s);
 
-    Serial.println("Temps:");
+    Serial.print("Temp: ");
     Serial.print(t1);
-    Serial.print(" -- ");
-    Serial.print(t2);
     Serial.println();
 
     String PostData="temp1=";
     PostData=String(PostData + t1s);
-
-    PostData=PostData+"&temp2=";
-    PostData=String(PostData + t2s);
-
+    PostData=String("&id=" + ID);
     Serial.println(PostData);
 
     // if there's a successful connection:
